@@ -1,74 +1,39 @@
-import os
 import cv2
+from keras.models import model_from_json
 import numpy as np
-from keras.preprocessing import image
-import warnings
-from keras.models import load_model
-import matplotlib.pyplot as plt
-import time
+# from keras_preprocessing.image import load_img
+json_file = open("facialemotionmodel.json", "r")
+model_json = json_file.read()
+json_file.close()
+model = model_from_json(model_json)
 
-warnings.filterwarnings("ignore")
+model.load_weights("facialemotionmodel.h5")
+haar_file=cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+face_cascade=cv2.CascadeClassifier(haar_file)
 
-# Load the model (Pastikan path lengkap ke model yang benar)
-model = load_model("best_model.h5")
+def extract_features(image):
+    feature = np.array(image)
+    feature = feature.reshape(1,48,48,1)
+    return feature/255.0
 
-face_haar_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-
-cap = cv2.VideoCapture(0)
-
-# Initialize emotion counts
-emotion_counts = {'angry': 0, 'disgust': 0, 'fear': 0, 'happy': 0, 'sad': 0, 'surprise': 0, 'neutral': 0}
-
-emotions = ('angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral')
-
-# Record for 10 seconds
-start_time = time.time()
-while time.time() - start_time < 10:
-    ret, test_img = cap.read()
-    if not ret:
-        continue
-
-    # Ubah gambar menjadi citra grayscale
-    gray_img = cv2.cvtColor(test_img, cv2.COLOR_BGR2GRAY)
-
-    faces_detected = face_haar_cascade.detectMultiScale(gray_img, 1.32, 5)
-
-    for (x, y, w, h) in faces_detected:
-        roi_gray = gray_img[y:y + w, x:x + h]
-        roi_gray = cv2.resize(roi_gray, (224, 224))
-        img_pixels = image.img_to_array(roi_gray)
-        img_pixels = np.expand_dims(img_pixels, axis=0)
-        img_pixels /= 255
-
-        predictions = model.predict(img_pixels)
-        max_index = np.argmax(predictions[0])
-        predicted_emotion = emotions[max_index]
-
-        # Update emotion counts
-        emotion_counts[predicted_emotion] += 1
-
-        cv2.putText(test_img, predicted_emotion, (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-
-    resized_img = cv2.resize(test_img, (1000, 700))
-    cv2.imshow('Analisis emosi wajah', resized_img)
-
-    if cv2.waitKey(10) == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-
-# Create a bar chart for emotion distribution
-emotions = list(emotion_counts.keys())
-counts = list(emotion_counts.values())
-
-plt.bar(emotions, counts)
-plt.title('Distribusi Emosi')
-plt.xlabel('Emosi')
-plt.ylabel('Jumlah')
-
-# Simpan grafik sebagai gambar (Pastikan path lengkap atau direktori writable)
-plt.savefig('distribusi_emosi.png')
-
-# Tampilkan grafik
-plt.show()
+webcam=cv2.VideoCapture(0)
+labels = {0 : 'angry', 1 : 'disgust', 2 : 'fear', 3 : 'happy', 4 : 'neutral', 5 : 'sad', 6 : 'surprise'}
+while True:
+    i,im=webcam.read()
+    gray=cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
+    faces=face_cascade.detectMultiScale(im,1.3,5)
+    try: 
+        for (p,q,r,s) in faces:
+            image = gray[q:q+s,p:p+r]
+            cv2.rectangle(im,(p,q),(p+r,q+s),(255,0,0),2)
+            image = cv2.resize(image,(48,48))
+            img = extract_features(image)
+            pred = model.predict(img)
+            prediction_label = labels[pred.argmax()]
+            # print("Predicted Output:", prediction_label)
+            # cv2.putText(im,prediction_label)
+            cv2.putText(im, '% s' %(prediction_label), (p-10, q-10),cv2.FONT_HERSHEY_COMPLEX_SMALL,2, (0,0,255))
+        cv2.imshow("Output",im)
+        cv2.waitKey(27)
+    except cv2.error:
+        pass
