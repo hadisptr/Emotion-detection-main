@@ -6,6 +6,7 @@ import warnings
 from keras.models import load_model
 import matplotlib.pyplot as plt
 import time
+import pygame
 
 warnings.filterwarnings("ignore")
 
@@ -21,9 +22,9 @@ emotion_counts = {'angry': 0, 'disgust': 0, 'fear': 0, 'happy': 0, 'sad': 0, 'su
 
 emotions = ('angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral')
 
-# Record for 10 seconds
-start_time = time.time()
-while time.time() - start_time < 10:
+# Capture 10 facial expressions
+expressions_captured = 0
+while expressions_captured < 10:
     ret, test_img = cap.read()
     if not ret:
         continue
@@ -54,8 +55,23 @@ while time.time() - start_time < 10:
     if cv2.waitKey(10) == ord('q'):
         break
 
+    # Check if 10 expressions have been captured
+    if sum(emotion_counts.values()) == 10:
+        break
+
 cap.release()
 cv2.destroyAllWindows()
+
+# Find the emotion with the highest count
+highest_emotion = max(emotion_counts, key=emotion_counts.get)
+
+# Play music based on the highest emotion
+music_folder = 'music'
+music_file = os.path.join(music_folder, highest_emotion + '.mp3')
+
+pygame.mixer.init()
+pygame.mixer.music.load(music_file)
+pygame.mixer.music.play()
 
 # Create a bar chart for emotion distribution
 emotions = list(emotion_counts.keys())
@@ -71,3 +87,7 @@ plt.savefig('distribusi_emosi.png')
 
 # Tampilkan grafik
 plt.show()
+
+# Wait for music to finish playing
+pygame.mixer.music.stop()
+pygame.mixer.quit()
