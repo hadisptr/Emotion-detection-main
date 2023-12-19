@@ -25,9 +25,12 @@ emotion_counts = {'angry': 0, 'disgust': 0, 'fear': 0, 'happy': 0, 'sad': 0, 'su
 # Daftar emosi
 emotions = ('angry', 'disgust', 'fear', 'happy', 'sad', 'surprise', 'neutral')
 
+# Menunggu pengguna menekan tombol Enter
+# input("Tekan Enter untuk memulai deteksi emosi...")
+
 # Mengambil 10 ekspresi wajah
 expressions_captured = 0
-while expressions_captured < 10:
+while expressions_captured < 20:
     # Membaca frame dari kamera
     ret, test_img = cap.read()
     if not ret:
@@ -67,7 +70,7 @@ while expressions_captured < 10:
         break
 
     # Cek apakah sudah terdeteksi 10 ekspresi wajah
-    if sum(emotion_counts.values()) == 10:
+    if sum(emotion_counts.values()) == 20:
         break
 
 # Menutup kamera video dan jendela tampilan
